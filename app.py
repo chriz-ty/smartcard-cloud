@@ -50,7 +50,7 @@ def list_schema(table):
 # SocketIO endpoint for local client
 @socketio.on("connect", namespace="/tunnel")
 def handle_connect():
-    print("Local connector connected via WebSocket")
+    print("Local connector connected via WebSocket /tunnel")
 
 @socketio.on("schema_response", namespace="/tunnel")
 def handle_schema_response(data):
