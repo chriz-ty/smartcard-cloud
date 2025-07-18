@@ -28,14 +28,20 @@ def token_page():
 
 @app.route("/generate-token", methods=["GET", "POST"])
 def generate_token():
-    client_id = request.form.get("client_id", "").strip()
+    if request.method == "POST":
+        client_id = request.form.get("client_id", "").strip()
+    else:
+        client_id = request.args.get("client_id", "").strip()
 
     if not client_id or client_id not in REGISTERED_CLIENTS:
-        return render_template("token.html", error="Invalid or unregistered Client ID")
+        if request.method == "POST":
+            return render_template("token.html", error="Invalid or unregistered Client ID")
+        return jsonify({"error": "Invalid or unregistered Client ID"}), 400
 
     token = secrets.token_hex(16)
     valid_tokens[token] = client_id
     print("✅ /generate-token route accessed")
+
     try:
         local_response = requests.post("http://localhost:5005/receive-token", json={
             "token": token,
@@ -44,8 +50,17 @@ def generate_token():
         print(f"[➡️ Sent to local] Response: {local_response.status_code}")
     except Exception as e:
         print(f"[⚠️ Error sending to local] {e}")
-    
-    return render_template("token.html", token=token, client_id=client_id)
+
+    if request.method == "POST":
+        return render_template("token.html", token=token, client_id=client_id)
+    else:
+        return jsonify({
+            "status": "success",
+            "message": "Token generated and sent to client.",
+            "token": token,
+            "client_id": client_id
+        }), 200
+
 
 # ---------------- API Endpoints ----------------
 
