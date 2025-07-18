@@ -37,7 +37,7 @@ def generate_token():
     valid_tokens[token] = client_id
     print("✅ /generate-token route accessed")
     try:
-        local_response = requests.post("http://localhost:5000/receive-token", json={
+        local_response = requests.post("http://localhost:5005/receive-token", json={
             "token": token,
             "client_id": client_id
         })
