@@ -1,5 +1,3 @@
-# cloudapp.py
-
 from flask import Flask, request, jsonify, render_template
 from flask_socketio import SocketIO, emit
 import threading
@@ -12,17 +10,15 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Registered clients for security
-REGISTERED_CLIENTS = {"smartcardadmin123", "smartcard_client"}  # Add more allowed client IDs here
-
-# Shared state
-pending_requests = {}
+# In-memory stores
+REGISTERED_CLIENTS = {"smartcardadmin123", "smartcard_client"}
 valid_tokens = {}
+pending_requests = {}
 
 # ---------------- UI Routes ----------------
 
 @app.route("/", methods=["GET"])
-@app.route("/token-page")
+@app.route("/token-page", methods=["GET"])
 def token_page():
     return render_template("token.html")
 
@@ -61,21 +57,7 @@ def generate_token():
             "client_id": client_id
         }), 200
 
-
-# ---------------- API Endpoints ----------------
-
-@app.route("/get-token", methods=["POST"])
-def get_token():
-    data = request.get_json()
-    client_id = data.get("client_id", "").strip()
-
-    if not client_id or client_id not in REGISTERED_CLIENTS:
-        return jsonify({"error": "Invalid or unregistered client ID"}), 400
-
-    token = str(uuid.uuid4())
-    valid_tokens[token] = client_id
-    print(f"[✅ Cloud] Token generated for {client_id}: {token}")
-    return jsonify({"token": token})
+# ---------------- Token Verification API ----------------
 
 @app.route("/verify-token", methods=["POST"])
 def verify_token():
@@ -93,7 +75,21 @@ def verify_token():
 
     return jsonify({"status": "invalid"}), 401
 
-# ---------------- Socket Tunnel ----------------
+@app.route("/get-token", methods=["POST"])
+def get_token():
+    data = request.get_json()
+    client_id = data.get("client_id", "").strip()
+
+    if not client_id or client_id not in REGISTERED_CLIENTS:
+        return jsonify({"error": "Invalid or unregistered client ID"}), 400
+
+    token = str(uuid.uuid4())
+    valid_tokens[token] = client_id
+    print(f"[✅ Cloud] Token generated for {client_id}: {token}")
+    return jsonify({"token": token})
+
+
+# ---------------- Cloud Tunnel APIs ----------------
 
 @app.route("/listschema/<table>", methods=["GET"])
 def list_schema(table):
@@ -109,7 +105,10 @@ def list_columns(table):
 
 @app.route("/data/<table>/<column>", methods=["GET"])
 def column_data(table, column):
-    return _request_through_tunnel("get_column_data", {"table": table, "column": column}, f"data-{table}-{column}", "data")
+    return _request_through_tunnel("get_column_data", {
+        "table": table,
+        "column": column
+    }, f"data-{table}-{column}", "data")
 
 def _request_through_tunnel(event_name, payload, request_id, key):
     event = threading.Event()
@@ -122,15 +121,16 @@ def _request_through_tunnel(event_name, payload, request_id, key):
         return jsonify({"error": "Timeout or no response"}), 500
     return jsonify({key: data})
 
-# ---------------- WebSocket Events ----------------
+
+# ---------------- WebSocket Event Handlers ----------------
 
 @socketio.on("connect", namespace="/tunnel")
 def handle_connect():
-    print("✅ Local connector connected.")
+    print("✅ Local connector connected via WebSocket /tunnel")
 
 @socketio.on("disconnect", namespace="/tunnel")
 def handle_disconnect():
-    print("❌ Local connector disconnected.")
+    print("❌ Local connector disconnected from /tunnel")
 
 @socketio.on("schema_response", namespace="/tunnel")
 @socketio.on("tables_response", namespace="/tunnel")
@@ -142,6 +142,8 @@ def handle_response(data):
     if request_id in pending_requests:
         pending_requests[request_id]["data"] = data.get(key)
         pending_requests[request_id]["event"].set()
+
+# ---------------- Server Startup ----------------
 
 if __name__ == "__main__":
     PORT = int(os.environ.get("PORT", 10000))
