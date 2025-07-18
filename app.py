@@ -4,7 +4,7 @@ import threading
 import os
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*")  # Allow all for now
 
 # Shared store for all pending requests
 pending_requests = {}
@@ -64,6 +64,45 @@ def list_tables():
 
     return jsonify({"tables": data})
 
+@app.route("/listcolumns/<table>", methods=["GET"])
+def list_columns(table):
+    request_id = f"columns-{table}"
+    event = threading.Event()
+    pending_requests[request_id] = {"event": event}
+
+    socketio.emit("get_columns", {"table": table, "request_id": request_id}, namespace="/tunnel")
+
+    event.wait(timeout=5)
+    data = pending_requests.get(request_id, {}).get("data")
+
+    pending_requests.pop(request_id, None)
+
+    if not data:
+        return jsonify({"error": "Timeout or no response"}), 500
+
+    return jsonify({"columns": data})
+
+@app.route("/data/<table>/<column>", methods=["GET"])
+def column_data(table, column):
+    request_id = f"data-{table}-{column}"
+    event = threading.Event()
+    pending_requests[request_id] = {"event": event}
+
+    socketio.emit("get_column_data", {
+        "table": table,
+        "column": column,
+        "request_id": request_id
+    }, namespace="/tunnel")
+
+    event.wait(timeout=5)
+    data = pending_requests.get(request_id, {}).get("data")
+
+    pending_requests.pop(request_id, None)
+
+    if not data:
+        return jsonify({"error": "Timeout or no response"}), 500
+
+    return jsonify({"data": data})
 
 # ================= SocketIO =================
 
@@ -89,6 +128,19 @@ def handle_tables_response(data):
         pending_requests[request_id]["data"] = data.get("tables")
         pending_requests[request_id]["event"].set()
 
+@socketio.on("columns_response", namespace="/tunnel")
+def handle_columns_response(data):
+    request_id = data.get("request_id")
+    if request_id in pending_requests:
+        pending_requests[request_id]["data"] = data.get("columns")
+        pending_requests[request_id]["event"].set()
+
+@socketio.on("column_data_response", namespace="/tunnel")
+def handle_column_data_response(data):
+    request_id = data.get("request_id")
+    if request_id in pending_requests:
+        pending_requests[request_id]["data"] = data.get("data")
+        pending_requests[request_id]["event"].set()
 
 if __name__ == "__main__":
     PORT = int(os.environ.get("PORT", 10000))
