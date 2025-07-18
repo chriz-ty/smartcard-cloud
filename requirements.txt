@@ -3,3 +3,4 @@ gunicorn
 flask-socketio
 eventlet
 python-dotenv
+requests
