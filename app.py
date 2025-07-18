@@ -26,7 +26,7 @@ valid_tokens = {}
 def token_page():
     return render_template("token.html")
 
-@app.route("/generate-token", methods=["POST"])
+@app.route("/generate-token", methods=["GET"])
 def generate_token():
     client_id = request.form.get("client_id", "").strip()
 
