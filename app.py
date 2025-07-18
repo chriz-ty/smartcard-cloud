@@ -35,6 +35,7 @@ def generate_token():
 
     token = secrets.token_hex(16)
     valid_tokens[token] = client_id
+    print("✅ /generate-token route accessed")
     try:
         local_response = requests.post("http://localhost:5000/receive-token", json={
             "token": token,
@@ -43,6 +44,7 @@ def generate_token():
         print(f"[➡️ Sent to local] Response: {local_response.status_code}")
     except Exception as e:
         print(f"[⚠️ Error sending to local] {e}")
+    
     return render_template("token.html", token=token, client_id=client_id)
 
 # ---------------- API Endpoints ----------------
