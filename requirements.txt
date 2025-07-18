@@ -2,3 +2,4 @@ flask
 gunicorn
 flask-socketio
 eventlet
+python-dotenv
