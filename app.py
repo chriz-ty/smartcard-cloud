@@ -17,8 +17,41 @@ pending_requests = {}
 
 # ---------------- UI Routes ----------------
 
+# Mock function to get databases and tables from IBM DB2
+# In a real application, this would connect to your IBM DB2 instance
+# and fetch the actual databases and tables
+def get_databases():
+    # This is a mock implementation
+    # Replace this with actual database connection and query logic
+    return [
+        {
+            "name": "SALESDB",
+            "tables": ["CUSTOMERS", "ORDERS", "PRODUCTS", "SALES"]
+        },
+        {
+            "name": "HRDB",
+            "tables": ["EMPLOYEES", "DEPARTMENTS", "SALARIES", "ATTENDANCE"]
+        },
+        {
+            "name": "INVENTORY",
+            "tables": ["ITEMS", "SUPPLIERS", "STOCK_LEVELS", "PURCHASE_ORDERS"]
+        }
+    ]
+
 @app.route("/", methods=["GET"])
 @app.route("/token-page", methods=["GET"])
+def index():
+    # Get the list of databases and their tables
+    databases = get_databases()
+    # For now, we'll show empty selected_databases
+    # In a real app, you'd fetch this from your database
+    selected_databases = []
+    
+    return render_template('cloud_dashboard.html', 
+                         databases=databases,
+                         selected_databases=selected_databases,
+                         token=request.args.get('token'))
+
 def token_page():
     return render_template("token.html")
 
@@ -30,9 +63,9 @@ def generate_token():
         client_id = request.args.get("client_id", "").strip()
 
     if not client_id or client_id not in REGISTERED_CLIENTS:
-        if request.method == "POST":
-            return render_template("token.html", error="Invalid or unregistered Client ID")
-        return jsonify({"error": "Invalid or unregistered Client ID"}), 400
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"error": "Invalid or unregistered Client ID"}), 400
+        return render_template("cloud_dashboard.html", error="Invalid or unregistered Client ID")
 
     token = secrets.token_hex(16)
     valid_tokens[token] = client_id
@@ -47,15 +80,22 @@ def generate_token():
     except Exception as e:
         print(f"[⚠️ Error sending to local] {e}")
 
-    if request.method == "POST":
-        return render_template("token.html", token=token, client_id=client_id)
-    else:
+    # AJAX request: return JSON
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({
             "status": "success",
             "message": "Token generated and sent to client.",
             "token": token,
             "client_id": client_id
         }), 200
+    # Normal POST: render dashboard with token
+    databases = get_databases()
+    selected_databases = []
+    return render_template('cloud_dashboard.html', 
+                         databases=databases,
+                         selected_databases=selected_databases,
+                         token=token,
+                         client_id=client_id)
 
 # ---------------- Token Verification API ----------------
 
