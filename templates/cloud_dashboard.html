@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCard AI - Cloud Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .db-card {
+            background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
+            border: 2px solid rgba(3, 169, 244, 0.2);
+        }
+        .connected-indicator {
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .management-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .token-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .credentials-input {
+            background: rgba(243, 244, 246, 0.8);
+        }
+        .token-input {
+            background: rgba(134, 239, 172, 0.2);
+            border: 2px solid rgba(134, 239, 172, 0.4);
+        }
+        .sync-btn {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            transition: all 0.3s ease;
+        }
+        .sync-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .connect-btn {
+            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+            transition: all 0.3s ease;
+        }
+        .connect-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
+        }
+        .generate-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            transition: all 0.3s ease;
+        }
+        .generate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        .disconnect-btn {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            transition: all 0.3s ease;
+        }
+        .disconnect-btn:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        }
+        .success-banner {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-md flex items-center justify-center">
+                    <img src="{{ url_for('static', filename='assets/smlogo.png') }}" alt="logo" class="w-8 h-8">
+                </div>
+                <h1 class="text-xl font-semibold text-gray-800">SmartCard AI</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-600">Cloud Client</span>
+                <a href="/logout" class="text-sm text-red-600 hover:text-red-800 transition-colors">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-8">
+        <!-- Success Banner -->
+        {% if token %}
+        <div class="success-banner rounded-xl p-4 mb-8 text-center">
+            <div class="flex items-center justify-center space-x-2">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-green-800 font-medium">Token generated successfully!</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column - Desktop Databases -->
+            <div class="space-y-6">
+                <div>
+                    <h2 class="text-lg font-medium text-gray-800 mb-4">Desktop Databases</h2>
+                    <div class="db-card rounded-xl p-6 text-center shadow-lg">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-black rounded-lg flex items-center justify-center">
+                            <div class="text-white text-center">
+                                <div class="text-sm font-bold">IBM</div>
+                                <div class="bg-green-500 text-black px-2 py-1 rounded text-xs font-bold mt-1">DB2</div>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 font-medium">IBM DB2</p>
+                        <div class="mt-3 flex items-center justify-center">
+                            <span class="connected-indicator"></span>
+                            <span class="text-xs text-gray-600">Connected</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Column - Database Management -->
+            <div class="management-panel rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-medium text-gray-800">Database Sync Management</h3>
+                </div>
+
+                <!-- Connected Local Clients -->
+                <div class="mb-6">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">Connected Local Clients:</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <span class="connected-indicator"></span>
+                                <span class="text-sm text-gray-700">Local Client #1</span>
+                            </div>
+                            <span class="text-xs text-gray-500">Active</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <span class="connected-indicator"></span>
+                                <span class="text-sm text-gray-700">Local Client #2</span>
+                            </div>
+                            <span class="text-xs text-gray-500">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Database Selection -->
+                <div class="mb-6">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">Available Databases (from Local Client):</h4>
+                    <div id="database-list" class="space-y-2">
+                        <!-- Databases and tables will be dynamically loaded here -->
+                        <div id="loading-databases" class="text-gray-500 text-sm">Loading databases...</div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="space-y-3">
+                    <button onclick="syncDatabases()" class="sync-btn w-full px-4 py-3 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                        Sync Selected Databases
+                    </button>
+                    <button onclick="refreshStatus()" class="connect-btn w-full px-4 py-3 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
+                        Refresh Status
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column - Token Generation -->
+            <div class="token-panel rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-medium text-gray-800">Token Generator</h3>
+                </div>
+
+                <!-- Token Generation Form -->
+                <form id="tokenForm" method="POST" action="/generate-token" class="space-y-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 mb-2 block">Client ID</label>
+                        <input type="text" name="client_id" id="client_id_input" placeholder="Enter Client ID" 
+                               class="credentials-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               value="{{ client_id or '' }}" required>
+                    </div>
+                    <div id="tokenResult"></div>
+                    <button type="submit" class="generate-btn w-full px-4 py-3 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Generate Token
+                    </button>
+                </form>
+
+                <!-- Generated Token Display -->
+                {% if token %}
+                <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h4 class="text-sm font-medium text-green-800 mb-2">Generated Token:</h4>
+                    <div class="token-input p-3 rounded-lg">
+                        <code class="text-sm break-all text-green-700">{{ token }}</code>
+                    </div>
+                    <button onclick="copyToken()" class="mt-3 w-full bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-2 rounded transition-colors">
+                        Copy Token
+                    </button>
+                </div>
+                {% endif %}
+
+                <!-- Token Usage Instructions -->
+                <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 class="text-sm font-medium text-blue-800 mb-2">How to Use:</h4>
+                    <ol class="text-xs text-blue-700 space-y-1">
+                        <li>1. Generate a token with your Client ID</li>
+                        <li>2. Copy the generated token</li>
+                        <li>3. Use it in your local client to connect</li>
+                        <li>4. Start syncing your databases</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Synced Databases Section -->
+        <div class="mt-8">
+            <div class="management-panel rounded-xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-800">List of DBs Synced</h3>
+                    <button onclick="previewSelectedTables()" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Preview Selected Tables
+                    </button>
+                </div>
+                
+                <div id="synced-databases" class="space-y-4">
+                    {% if selected_databases %}
+                        {% for db in selected_databases %}
+                        <div class="border rounded-lg overflow-hidden">
+                            <div class="bg-gray-50 px-4 py-3 border-b">
+                                <div class="flex items-center">
+                                    <span class="font-medium text-gray-800">{{ db.name }}</span>
+                                    <span class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">{{ db.tables|length }} tables</span>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {% for table in db.tables %}
+                                    <div class="flex items-center bg-gray-50 p-2 rounded border">
+                                        <span class="text-sm text-gray-700">{{ table }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="text-center py-6 text-gray-500">
+                        <p>No databases selected for syncing yet.</p>
+                        <p class="text-sm mt-1">Select databases from the list above and click "Sync Selected Databases"</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Track selected databases and tables
+        let selectedDatabases = [];
+        
+        // Toggle database tables visibility
+        function toggleDatabaseTables(checkbox, dbName) {
+            const tablesContainer = document.getElementById(`tables-${dbName}`);
+            if (tablesContainer) {
+                if (checkbox.checked) {
+                    tablesContainer.classList.remove('hidden');
+                    // If this DB isn't in our selected databases, add it
+                    if (!selectedDatabases.some(db => db.name === dbName)) {
+                        selectedDatabases.push({
+                            name: dbName,
+                            tables: []
+                        });
+                    }
+                } else {
+                    tablesContainer.classList.add('hidden');
+                    // Remove this DB from selected databases
+                    selectedDatabases = selectedDatabases.filter(db => db.name !== dbName);
+                    // Uncheck all table checkboxes when hiding
+                    const tableCheckboxes = tablesContainer.querySelectorAll('.table-checkbox');
+                    tableCheckboxes.forEach(tc => tc.checked = false);
+                }
+                updateSyncedDatabases();
+            }
+        }
+        
+        // Toggle table selection
+        function toggleTable(checkbox, dbName, tableName) {
+            const dbIndex = selectedDatabases.findIndex(db => db.name === dbName);
+            if (dbIndex === -1) return;
+            
+            const tableIndex = selectedDatabases[dbIndex].tables.indexOf(tableName);
+            
+            if (checkbox.checked && tableIndex === -1) {
+                selectedDatabases[dbIndex].tables.push(tableName);
+            } else if (!checkbox.checked && tableIndex !== -1) {
+                selectedDatabases[dbIndex].tables.splice(tableIndex, 1);
+            }
+            
+            updateSyncedDatabases();
+        }
+        
+        // Update the synced databases section
+        function updateSyncedDatabases() {
+            const container = document.getElementById('synced-databases');
+            if (!container) return;
+            
+            // Filter out databases with no tables selected
+            const dbsWithTables = selectedDatabases.filter(db => db.tables.length > 0);
+            
+            if (dbsWithTables.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-gray-500">
+                        <p>No databases selected for syncing yet.</p>
+                        <p class="text-sm mt-1">Select databases from the list above and click "Sync Selected Databases"</p>
+                    </div>`;
+                return;
+            }
+            
+            let html = '';
+            dbsWithTables.forEach(db => {
+                html += `
+                <div class="border rounded-lg overflow-hidden mb-4">
+                    <div class="bg-gray-50 px-4 py-3 border-b">
+                        <div class="flex items-center">
+                            <span class="font-medium text-gray-800">${db.name}</span>
+                            <span class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">${db.tables.length} tables</span>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">`;
+                
+                db.tables.forEach(table => {
+                    html += `
+                            <div class="flex items-center bg-gray-50 p-2 rounded border">
+                                <span class="text-sm text-gray-700">${table}</span>
+                            </div>`;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                </div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Sync selected databases
+        function syncDatabases() {
+            // Filter out databases with no tables selected
+            const dbsToSync = selectedDatabases.filter(db => db.tables.length > 0);
+            
+            if (dbsToSync.length === 0) {
+                alert('Please select at least one table to sync.');
+                return;
+            }
+            
+            // Here you would typically send this to the server
+            console.log('Syncing databases:', dbsToSync);
+            
+            // For demo, we'll just update the UI
+            updateSyncedDatabases();
+            
+            // Show success message
+            alert(`Successfully synced ${dbsToSync.length} database(s) with selected tables.`);
+        }
+        
+        // Preview selected tables
+        function previewSelectedTables() {
+            const selectedTables = [];
+            document.querySelectorAll('.table-checkbox:checked').forEach(checkbox => {
+                const [dbName, tableName] = checkbox.value.split('.');
+                selectedTables.push(`${dbName}.${tableName}`);
+            });
+            
+            if (selectedTables.length === 0) {
+                alert('Please select at least one table to preview.');
+                return;
+            }
+            
+            // Here you would typically redirect to a preview page or show a modal
+            console.log('Previewing tables:', selectedTables);
+            
+            // For now, we'll just show an alert
+            alert(`Would preview ${selectedTables.length} tables: ${selectedTables.join(', ')}`);
+        }
+        
+        // Refresh status
+        function refreshStatus() {
+            console.log('Refreshing status...');
+            // Here you would fetch the latest status from the server
+            location.reload();
+        }
+        
+        // Copy token to clipboard
+        function copyToken() {
+            const tokenInput = document.getElementById('generatedToken');
+            if (tokenInput) {
+                tokenInput.select();
+                document.execCommand('copy');
+                
+                // Show feedback
+                const copyBtn = event.currentTarget;
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Copied!
+                `;
+                
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
+            }
+        }
+
+        // Auto-refresh status every 30 seconds
+        setInterval(function() {
+            // Add auto-refresh logic here
+            console.log('Auto-refreshing status...');
+        }, 30000);
+
+        // Token Generator AJAX logic
+        const tokenForm = document.getElementById('tokenForm');
+        if (tokenForm) {
+            tokenForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const clientId = document.getElementById('client_id_input').value.trim();
+                const tokenResult = document.getElementById('tokenResult');
+                tokenResult.innerHTML = '';
+                if (!clientId) {
+                    tokenResult.innerHTML = '<div class="mt-2 text-red-600 text-sm">Please enter a Client ID.</div>';
+                    return;
+                }
+                try {
+                    const response = await fetch('/generate-token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: `client_id=${encodeURIComponent(clientId)}`
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.token) {
+                        tokenResult.innerHTML = `
+                            <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <p class="text-sm text-green-700 font-medium">Generated Token:</p>
+                                <div class="flex items-center mt-1">
+                                    <input type="text" id="generatedToken" value="${data.token}" readonly 
+                                           class="w-full bg-white border-0 text-sm text-gray-700 font-mono p-2 rounded">
+                                    <button type="button" onclick="copyToken()" 
+                                            class="ml-2 p-2 text-gray-500 hover:text-gray-700">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <p class="text-xs text-green-600 mt-1">Token generated successfully! Copy it to a safe place.</p>
+                            </div>
+                        `;
+                    } else {
+                        tokenResult.innerHTML = `<div class="mt-2 text-red-600 text-sm">${data.error || 'Failed to generate token.'}</div>`;
+                    }
+                } catch (err) {
+                    tokenResult.innerHTML = '<div class="mt-2 text-red-600 text-sm">Error generating token. Please try again.</div>';
+                }
+            });
+        }
+
+        // --- Dynamic Local Client Database Fetch & Table Dropdown ---
+        async function fetchLocalDatabases() {
+            const dbList = document.getElementById('database-list');
+            const loading = document.getElementById('loading-databases');
+            try {
+                const response = await fetch('/tables');
+                const data = await response.json();
+                if (!data.tables || !Array.isArray(data.tables) || data.tables.length === 0) {
+                    dbList.innerHTML = '<p class="text-sm text-gray-500 italic">No databases found from local client.</p>';
+                    return;
+                }
+                // Group tables by database name if needed, or treat as flat list
+                // For this example, assume data.tables = [{name: 'DB', tables: ['T1', 'T2']}, ...] or data.tables = ['DB1.TABLE1', 'DB1.TABLE2', ...]
+                let dbMap = {};
+                if (typeof data.tables[0] === 'string') {
+                    // Flat list, parse DB.TABLE
+                    data.tables.forEach(fullName => {
+                        const [db, table] = fullName.split('.');
+                        if (!dbMap[db]) dbMap[db] = [];
+                        dbMap[db].push(table);
+                    });
+                } else if (typeof data.tables[0] === 'object' && data.tables[0].name && data.tables[0].tables) {
+                    // Already grouped
+                    data.tables.forEach(dbObj => {
+                        dbMap[dbObj.name] = dbObj.tables;
+                    });
+                }
+                let html = '';
+                Object.entries(dbMap).forEach(([dbName, tables], idx) => {
+                    html += `
+                    <div class="database-item border rounded-lg overflow-hidden">
+                        <div class="flex items-center p-3 bg-gray-50">
+                            <span class="text-sm font-medium text-gray-700">${dbName}</span>
+                            <span class="ml-auto text-xs text-gray-500">${tables.length} tables</span>
+                        </div>
+                        <div class="pl-8 pr-3 py-2 bg-white border-t">
+                            <label for="table-select-${idx}" class="text-xs text-gray-500 mb-2 block">Select table to preview:</label>
+                            <select id="table-select-${idx}" class="table-dropdown mb-2 px-2 py-1 border rounded text-xs" onchange="previewTableData('${dbName}', this.value)">
+                                <option value="">-- Select Table --</option>
+                                ${tables.map(table => `<option value="${table}">${table}</option>`).join('')}
+                            </select>
+                            <div id="preview-data-${dbName}" class="preview-data mt-2"></div>
+                        </div>
+                    </div>
+                    `;
+                });
+                dbList.innerHTML = html;
+            } catch (err) {
+                dbList.innerHTML = '<p class="text-sm text-red-500">Error loading databases from local client.</p>';
+            }
+            if (loading) loading.remove();
+        }
+
+        // Preview table data (fetch columns and show a sample)
+        async function previewTableData(dbName, tableName) {
+            if (!tableName) return;
+            const previewDiv = document.getElementById(`preview-data-${dbName}`);
+            if (previewDiv) {
+                previewDiv.innerHTML = '<span class="text-xs text-gray-400">Loading table data...</span>';
+                try {
+                    // Fetch columns for the table
+                    const response = await fetch(`/listcolumns/${dbName}.${tableName}`);
+                    const data = await response.json();
+                    if (data.columns && Array.isArray(data.columns)) {
+                        previewDiv.innerHTML = `<span class="text-xs text-gray-700">Columns: ${data.columns.join(', ')}</span>`;
+                    } else {
+                        previewDiv.innerHTML = '<span class="text-xs text-red-500">Could not fetch columns.</span>';
+                    }
+                } catch (err) {
+                    previewDiv.innerHTML = '<span class="text-xs text-red-500">Error fetching table columns.</span>';
+                }
+            }
+        }
+
+        // On page load, fetch local client databases
+        window.addEventListener('DOMContentLoaded', fetchLocalDatabases);
+    </script>
+</body>
+</html>
