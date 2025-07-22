@@ -162,6 +162,18 @@ def _request_through_tunnel(event_name, payload, request_id, key):
     return jsonify({key: data})
 
 
+@app.route("/tally-preview")
+def tally_preview():
+    try:
+        res = requests.get("https://your-cloud-server-url.com/fetch/companies")
+        companies = res.json() if res.status_code == 200 else []
+    except Exception as e:
+        print(f"Error fetching tally data: {e}")
+        companies = []
+
+    return render_template("tally_preview.html", companies=companies)
+
+
 # ---------------- WebSocket Event Handlers ----------------
 
 @socketio.on("connect", namespace="/tunnel")
