@@ -473,7 +473,7 @@
             });
         }
 
-        // --- Dynamic Local Client Database Fetch & Table Dropdown ---
+        // --- Dynamic Local Client Database Fetch & Table List ---
         async function fetchLocalDatabases() {
             const dbList = document.getElementById('database-list');
             const loading = document.getElementById('loading-databases');
@@ -484,67 +484,48 @@
                     dbList.innerHTML = '<p class="text-sm text-gray-500 italic">No databases found from local client.</p>';
                     return;
                 }
-                // Group tables by database name if needed, or treat as flat list
-                // For this example, assume data.tables = [{name: 'DB', tables: ['T1', 'T2']}, ...] or data.tables = ['DB1.TABLE1', 'DB1.TABLE2', ...]
-                let dbMap = {};
-                if (typeof data.tables[0] === 'string') {
-                    // Flat list, parse DB.TABLE
-                    data.tables.forEach(fullName => {
-                        const [db, table] = fullName.split('.');
-                        if (!dbMap[db]) dbMap[db] = [];
-                        dbMap[db].push(table);
-                    });
-                } else if (typeof data.tables[0] === 'object' && data.tables[0].name && data.tables[0].tables) {
-                    // Already grouped
-                    data.tables.forEach(dbObj => {
-                        dbMap[dbObj.name] = dbObj.tables;
-                    });
-                }
+                // If you want to show DB name and tables:
+                // data.tables = [{name: 'MYDB', tables: ['T1', 'T2']}, ...]
+                // If you just want a flat list: data.tables = ['T1', 'T2', ...]
                 let html = '';
-                Object.entries(dbMap).forEach(([dbName, tables], idx) => {
+                if (typeof data.tables[0] === 'object' && data.tables[0].name && data.tables[0].tables) {
+                    // Grouped by DB
+                    Object.entries(data.tables).forEach(([idx, dbObj]) => {
+                        html += `
+                        <div class="database-item border rounded-lg overflow-hidden">
+                            <div class="flex items-center p-3 bg-gray-50">
+                                <span class="text-sm font-medium text-gray-700">${dbObj.name}</span>
+                                <span class="ml-auto text-xs text-gray-500">${dbObj.tables.length} tables</span>
+                            </div>
+                            <div class="pl-8 pr-3 py-2 bg-white border-t">
+                                <ul class="list-disc list-inside text-xs text-gray-700">
+                                    ${dbObj.tables.map(table => `<li>${table}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                        `;
+                    });
+                } else {
+                    // Flat list
                     html += `
                     <div class="database-item border rounded-lg overflow-hidden">
                         <div class="flex items-center p-3 bg-gray-50">
-                            <span class="text-sm font-medium text-gray-700">${dbName}</span>
-                            <span class="ml-auto text-xs text-gray-500">${tables.length} tables</span>
+                            <span class="text-sm font-medium text-gray-700">Tables</span>
+                            <span class="ml-auto text-xs text-gray-500">${data.tables.length} tables</span>
                         </div>
                         <div class="pl-8 pr-3 py-2 bg-white border-t">
-                            <label for="table-select-${idx}" class="text-xs text-gray-500 mb-2 block">Select table to preview:</label>
-                            <select id="table-select-${idx}" class="table-dropdown mb-2 px-2 py-1 border rounded text-xs" onchange="previewTableData('${dbName}', this.value)">
-                                <option value="">-- Select Table --</option>
-                                ${tables.map(table => `<option value="${table}">${table}</option>`).join('')}
-                            </select>
-                            <div id="preview-data-${dbName}" class="preview-data mt-2"></div>
+                            <ul class="list-disc list-inside text-xs text-gray-700">
+                                ${data.tables.map(table => `<li>${table}</li>`).join('')}
+                            </ul>
                         </div>
                     </div>
                     `;
-                });
+                }
                 dbList.innerHTML = html;
             } catch (err) {
                 dbList.innerHTML = '<p class="text-sm text-red-500">Error loading databases from local client.</p>';
             }
             if (loading) loading.remove();
-        }
-
-        // Preview table data (fetch columns and show a sample)
-        async function previewTableData(dbName, tableName) {
-            if (!tableName) return;
-            const previewDiv = document.getElementById(`preview-data-${dbName}`);
-            if (previewDiv) {
-                previewDiv.innerHTML = '<span class="text-xs text-gray-400">Loading table data...</span>';
-                try {
-                    // Fetch columns for the table
-                    const response = await fetch(`/listcolumns/${dbName}.${tableName}`);
-                    const data = await response.json();
-                    if (data.columns && Array.isArray(data.columns)) {
-                        previewDiv.innerHTML = `<span class="text-xs text-gray-700">Columns: ${data.columns.join(', ')}</span>`;
-                    } else {
-                        previewDiv.innerHTML = '<span class="text-xs text-red-500">Could not fetch columns.</span>';
-                    }
-                } catch (err) {
-                    previewDiv.innerHTML = '<span class="text-xs text-red-500">Error fetching table columns.</span>';
-                }
-            }
         }
 
         // On page load, fetch local client databases
