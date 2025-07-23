@@ -173,6 +173,29 @@ def tally_preview():
 
     return render_template("tally_preview.html", companies=companies)
 
+@app.route("/receive-tally", methods=["POST"])
+def receive_tally():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid Tally data"}), 400
+
+    with open("tally_data.json", "w") as f:
+        json.dump(data, f)
+
+    return jsonify({"message": "Tally data received"}), 200
+
+
+@app.route("/tally-preview")
+def tally_preview():
+    try:
+        with open("tally_data.json", "r") as f:
+            companies = json.load(f)
+    except Exception as e:
+        print(f"Error reading tally_data.json: {e}")
+        companies = {}
+
+    return render_template("tally_preview.html", companies=companies)
+
 
 # ---------------- WebSocket Event Handlers ----------------
 
