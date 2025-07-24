@@ -4,3 +4,6 @@ flask-socketio
 eventlet
 python-dotenv
 requests
+pymysql
+sqlalchemy
+jinja2
