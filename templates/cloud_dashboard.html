@@ -135,10 +135,12 @@
                         <h3 class="text-lg font-semibold text-blue-700">{{ db_key }}</h3>
                         <div class="flex gap-2">
                         <!-- Sync button -->
-                        <form action="/generate-token" method="POST">
-                            <input type="hidden" name="client_id" value="{{ client_id or 'smartcard_client' }}">
-                            <button type="submit" class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600">Sync</button>
+                        <form action="/" method="GET">
+                            <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded">
+                                🔄 Sync
+                            </button>
                         </form>
+
 
                         <!-- Preview button -->
                         <form action="/preview-mysql" method="GET">
