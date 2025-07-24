@@ -137,9 +137,6 @@
                     <div class="flex items-center space-x-3 mt-2 mb-4">
                         <button onclick="window.location.reload()" 
                                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm transition-all duration-200 flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M4 4v5h.582l1.445-1.445A6.997 6.997 0 0116.949 9H18a8 8 0 10-13.418 5.418l1.42-1.42A6 6 0 1116 9h-2.05a4 4 0 10-7.182 2.829L4 11.418V13H2V4h2z"/>
-                            </svg>
                             <span>Sync</span>
                         </button>
                     </div>
@@ -149,7 +146,6 @@
                             <h3 class="text-blue-700 font-medium text-md underline">{{ db_key }}</h3>
                             <div class="space-x-2">
                                 <a href="/preview-mysql?db_key={{ db_key }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md text-sm">Preview</a>
-                                <button onclick="location.reload()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-1 rounded-md text-sm">Sync</button>
                             </div>
                         </div>
                         <ul class="mt-2 text-gray-700 list-disc pl-5">
