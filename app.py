@@ -14,11 +14,16 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+
 # In-memory stores
 REGISTERED_CLIENTS = {"smartcardadmin123", "smartcard_client"}
 valid_tokens = {}
 pending_requests = {}
 mysql_schema_store = {}
+mysql_schema_store.clear()  # Clear old data on every startup
+
+
+
 # ---------------- UI Routes ----------------
 
 # Mock function to get databases and tables from IBM DB2
@@ -205,6 +210,11 @@ def receive_mysql():
     mysql_schema_store.update(data)
     print("✅ Received MySQL schema from local:", data.keys())
     return jsonify({"status": "MySQL schema received"}), 200
+
+@app.route("/disconnect-mysql", methods=["POST"])
+def disconnect_mysql():
+    mysql_schema_store.clear()
+    return jsonify({"status": "disconnected"}), 200
 
 
 # ---------------- WebSocket Event Handlers ----------------
