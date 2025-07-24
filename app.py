@@ -98,6 +98,16 @@ def generate_token():
                          token=token,
                          client_id=client_id)
 
+@app.route("/preview-mysql", methods=["GET"])
+def preview_mysql():
+    db_key = request.args.get("db_key")
+    if db_key not in mysql_schema_store:
+        return "Invalid database selected", 404
+
+    db_data = mysql_schema_store[db_key]
+    return render_template("preview_mysql.html", db_key=db_key, db_data=db_data)
+
+
 # ---------------- Token Verification API ----------------
 
 @app.route("/verify-token", methods=["POST"])
