@@ -9,6 +9,7 @@ import requests
 import json
 import urllib.parse
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -49,13 +50,13 @@ def index():
     selected_databases = []
 
     return render_template(
-        'cloud_dashboard.html', 
+        'cloud_dashboard.html',
         databases=databases,
         selected_databases=selected_databases,
-        token=request.args.get('token'),
-        client_id='smartcard_client',  # or fetch dynamically if needed
-        mysql_schema_store=mysql_schema_store
+        mysql_data=mysql_schema_store,  # ✅ Fix the variable name here
+        token=request.args.get('token')
     )
+
 
 def token_page():
     return render_template("token.html")
