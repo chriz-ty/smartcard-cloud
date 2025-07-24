@@ -1,11 +1,13 @@
 from flask import Flask, request, jsonify, render_template
 from flask_socketio import SocketIO, emit
+from sqlalchemy import create_engine, text
 import threading
 import os
 import uuid
 import secrets
 import requests
 import json
+import urllib.parse
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
@@ -104,13 +106,34 @@ def generate_token():
 @app.route("/preview-mysql", methods=["GET"])
 def preview_mysql():
     db_key = request.args.get("db_key")
-    if not db_key:
-        return "Missing db_key parameter", 400
-    if db_key not in mysql_schema_store:
-        return f"No data available for '{db_key}'", 404
 
-    db_data = mysql_schema_store[db_key]
-    return render_template("preview_mysql.html", db_key=db_key, db_data=db_data)
+    if db_key not in mysql_schema_store:
+        return "Invalid database selected", 404
+
+    schema_data = mysql_schema_store[db_key]
+    
+    # Optional: parse actual connection info from db_key
+    # For now, assuming local MySQL root access
+    user = "root"
+    password = urllib.parse.quote_plus("your_mysql_password")  # Replace
+    host = "localhost"
+    port = 3306
+    db = db_key.split(":")[0]
+
+    try:
+        engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}")
+        table_data = {}
+
+        for table in schema_data:
+            with engine.connect() as conn:
+                result = conn.execute(text(f"SELECT * FROM `{table}`"))
+                rows = [dict(row) for row in result]
+                table_data[table] = rows
+
+        return render_template("preview_mysql.html", db_key=db_key, db_data=table_data)
+
+    except Exception as e:
+        return f"Error fetching data: {e}", 500
 
 
 # ---------------- Token Verification API ----------------
