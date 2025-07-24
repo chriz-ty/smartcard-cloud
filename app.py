@@ -14,7 +14,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 REGISTERED_CLIENTS = {"smartcardadmin123", "smartcard_client"}
 valid_tokens = {}
 pending_requests = {}
-
+mysql_schema_store = {}
 # ---------------- UI Routes ----------------
 
 # Mock function to get databases and tables from IBM DB2
@@ -41,16 +41,17 @@ def get_databases():
 @app.route("/", methods=["GET"])
 @app.route("/token-page", methods=["GET"])
 def index():
-    # Get the list of databases and their tables
+    # Get the list of databases and their tables (IBM Db2 mock)
     databases = get_databases()
-    # For now, we'll show empty selected_databases
-    # In a real app, you'd fetch this from your database
     selected_databases = []
-    
-    return render_template('cloud_dashboard.html', 
-                         databases=databases,
-                         selected_databases=selected_databases,
-                         token=request.args.get('token'))
+
+    return render_template(
+        'cloud_dashboard.html', 
+        databases=databases,
+        selected_databases=selected_databases,
+        mysql_data=mysql_schema_store,  # ✅ This is new
+        token=request.args.get('token')
+    )
 
 def token_page():
     return render_template("token.html")
@@ -161,18 +162,6 @@ def _request_through_tunnel(event_name, payload, request_id, key):
         return jsonify({"error": "Timeout or no response"}), 500
     return jsonify({key: data})
 
-
-@app.route("/tally-preview")
-def tally_preview():
-    try:
-        res = requests.get("https://your-cloud-server-url.com/fetch/companies")
-        companies = res.json() if res.status_code == 200 else []
-    except Exception as e:
-        print(f"Error fetching tally data: {e}")
-        companies = []
-
-    return render_template("tally_preview.html", companies=companies)
-
 @app.route("/receive-tally", methods=["POST"])
 def receive_tally():
     data = request.get_json()
@@ -195,6 +184,14 @@ def tally_preview():
         companies = {}
 
     return render_template("tally_preview.html", companies=companies)
+
+@app.route('/receive-mysql', methods=['POST'])
+def receive_mysql():
+    data = request.get_json()
+    mysql_schema_store.clear()
+    mysql_schema_store.update(data)
+    print("✅ Received MySQL schema from local:", data.keys())
+    return jsonify({"status": "MySQL schema received"}), 200
 
 
 # ---------------- WebSocket Event Handlers ----------------
