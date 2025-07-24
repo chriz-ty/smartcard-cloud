@@ -105,35 +105,11 @@ def generate_token():
 @app.route("/preview-mysql", methods=["GET"])
 def preview_mysql():
     db_key = request.args.get("db_key")
-
     if db_key not in mysql_schema_store:
         return "Invalid database selected", 404
 
-    schema_data = mysql_schema_store[db_key]
-    
-    # Optional: parse actual connection info from db_key
-    # For now, assuming local MySQL root access
-    user = "root"
-    password = urllib.parse.quote_plus("your_mysql_password")  # Replace
-    host = "localhost"
-    port = 3306
-    db = db_key.split(":")[0]
-
-    try:
-        engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}")
-        table_data = {}
-
-        for table in schema_data:
-            with engine.connect() as conn:
-                result = conn.execute(text(f"SELECT * FROM `{table}`"))
-                rows = [dict(row) for row in result]
-                table_data[table] = rows
-
-        return render_template("preview_mysql.html", db_key=db_key, db_data=table_data)
-
-    except Exception as e:
-        return f"Error fetching data: {e}", 500
-
+    db_data = mysql_schema_store[db_key]  # this is a dict of tables → list of column dicts
+    return render_template("preview_mysql.html", db_key=db_key, db_data=db_data)
 
 # ---------------- Token Verification API ----------------
 
