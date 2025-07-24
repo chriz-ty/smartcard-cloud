@@ -5,6 +5,7 @@ import os
 import uuid
 import secrets
 import requests
+import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
@@ -49,8 +50,9 @@ def index():
         'cloud_dashboard.html', 
         databases=databases,
         selected_databases=selected_databases,
-        mysql_data=mysql_schema_store,  # ✅ This is new
-        token=request.args.get('token')
+        token=request.args.get('token'),
+        client_id='smartcard_client',  # or fetch dynamically if needed
+        mysql_schema_store=mysql_schema_store
     )
 
 def token_page():
@@ -96,13 +98,16 @@ def generate_token():
                          databases=databases,
                          selected_databases=selected_databases,
                          token=token,
-                         client_id=client_id)
+                         client_id=client_id,
+                         mysql_schema_store=mysql_schema_store)
 
 @app.route("/preview-mysql", methods=["GET"])
 def preview_mysql():
     db_key = request.args.get("db_key")
+    if not db_key:
+        return "Missing db_key parameter", 400
     if db_key not in mysql_schema_store:
-        return "Invalid database selected", 404
+        return f"No data available for '{db_key}'", 404
 
     db_data = mysql_schema_store[db_key]
     return render_template("preview_mysql.html", db_key=db_key, db_data=db_data)
