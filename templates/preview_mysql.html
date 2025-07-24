@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MySQL Database Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 px-6 py-4">
+  <h1 class="text-2xl font-bold mb-4">📊 Preview — {{ db_key }}</h1>
+
+  {% for table, columns in db_data.items() %}
+    <div class="bg-white rounded-xl p-4 shadow mb-4">
+      <h2 class="text-lg font-semibold text-blue-700 mb-2">{{ table }}</h2>
+      <ul class="list-disc pl-5 text-sm text-gray-700">
+        {% for col in columns %}
+          <li>{{ col.name }} — <span class="text-gray-500">{{ col.type }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endfor %}
+
+  <a href="/token-page" class="inline-block mt-6 bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">← Back</a>
+</body>
+</html>
