@@ -125,41 +125,33 @@
                     <img src="{{ url_for('static', filename='assets/smlogo.png') }}" class="inline w-5 h-5 mr-2" />
                     Preview Tally Data
                 </a>
-                <!-- 🌐 Synced MySQL Databases -->
-                <h2 class="text-xl font-semibold mt-8 mb-4">🗄️ Synced MySQL Databases</h2>
+                <!-- Synced MySQL Databases -->
+                <div class="mt-6">
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center mb-3">
+                        <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18" />
+                        </svg>
+                        Synced MySQL Databases
+                    </h2>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {% for db_key, tables in mysql_schema_store.items() %}
-                    <div class="border rounded-xl shadow-md p-4 bg-white">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-lg font-semibold text-blue-700">{{ db_key }}</h3>
-                        <div class="flex gap-2">
-                        <!-- Sync button -->
-                        <form action="/" method="GET">
-                            <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded">
-                                🔄 Sync
-                            </button>
-                        </form>
-
-
-                        <!-- Preview button -->
-                        <form action="/preview-mysql" method="GET">
-                            <input type="hidden" name="db_key" value="{{ db_key }}">
-                            <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700">Preview</button>
-                        </form>
+                    {% for db_key, tables in mysql_data.items() %}
+                    <div class="bg-white rounded-xl shadow p-4 mb-4 border border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-blue-700 font-medium text-md underline">{{ db_key }}</h3>
+                            <div class="space-x-2">
+                                <a href="/preview-mysql?db_key={{ db_key }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md text-sm">Preview</a>
+                                <button onclick="location.reload()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-1 rounded-md text-sm">Sync</button>
+                            </div>
                         </div>
+                        <ul class="mt-2 text-gray-700 list-disc pl-5">
+                            {% for table, columns in tables.items() %}
+                            <li>{{ table }} — {{ columns|length }} columns</li>
+                            {% endfor %}
+                        </ul>
                     </div>
-
-                    <ul class="list-disc pl-5 text-sm text-gray-700">
-                        {% for table, columns in tables.items() %}
-                        <li>
-                            {{ table }} — <span class="text-gray-500">{{ columns | length }} columns</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    </div>
-                {% endfor %}
+                    {% endfor %}
                 </div>
+
 
 
             </div>
