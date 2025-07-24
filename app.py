@@ -45,15 +45,13 @@ def get_databases():
 @app.route("/", methods=["GET"])
 @app.route("/token-page", methods=["GET"])
 def index():
-    # Get the list of databases and their tables (IBM Db2 mock)
     databases = get_databases()
     selected_databases = []
-
     return render_template(
         'cloud_dashboard.html',
         databases=databases,
         selected_databases=selected_databases,
-        mysql_data=mysql_schema_store,  # ✅ Fix the variable name here
+        mysql_data=mysql_schema_store,
         token=request.args.get('token')
     )
 
