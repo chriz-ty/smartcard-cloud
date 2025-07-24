@@ -125,6 +125,28 @@
                     <img src="{{ url_for('static', filename='assets/smlogo.png') }}" class="inline w-5 h-5 mr-2" />
                     Preview Tally Data
                 </a>
+                <!-- 🌐 Synced MySQL Databases -->
+                <div class="bg-white shadow-md rounded-xl p-4 my-6">
+                <h2 class="text-xl font-semibold mb-3">🗄️ Synced MySQL Databases</h2>
+                {% if mysql_data %}
+                    {% for db_schema, tables in mysql_data.items() %}
+                    <div class="border-b py-2">
+                        <h3 class="font-bold text-blue-600">{{ db_schema }}</h3>
+                        <ul class="list-disc ml-6 text-sm">
+                        {% for table, columns in tables.items() %}
+                            <li>
+                            <strong>{{ table }}</strong> — 
+                            {{ columns | length }} columns
+                            <!-- You can add a preview link here -->
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-gray-500">No MySQL schema synced yet.</p>
+                {% endif %}
+                </div>
 
             </div>
 
