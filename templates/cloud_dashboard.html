@@ -126,27 +126,39 @@
                     Preview Tally Data
                 </a>
                 <!-- 🌐 Synced MySQL Databases -->
-                <div class="bg-white shadow-md rounded-xl p-4 my-6">
-                <h2 class="text-xl font-semibold mb-3">🗄️ Synced MySQL Databases</h2>
-                {% if mysql_data %}
-                    {% for db_schema, tables in mysql_data.items() %}
-                    <div class="border-b py-2">
-                        <h3 class="font-bold text-blue-600">{{ db_schema }}</h3>
-                        <ul class="list-disc ml-6 text-sm">
-                        {% for table, columns in tables.items() %}
-                            <li>
-                            <strong>{{ table }}</strong> — 
-                            {{ columns | length }} columns
-                            <!-- You can add a preview link here -->
-                            </li>
-                        {% endfor %}
-                        </ul>
+                <h2 class="text-xl font-semibold mt-8 mb-4">🗄️ Synced MySQL Databases</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for db_key, tables in mysql_schema_store.items() %}
+                    <div class="border rounded-xl shadow-md p-4 bg-white">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-lg font-semibold text-blue-700">{{ db_key }}</h3>
+                        <div class="flex gap-2">
+                        <!-- Sync button -->
+                        <form action="/generate-token" method="POST">
+                            <input type="hidden" name="client_id" value="{{ client_id or 'smartcard_client' }}">
+                            <button type="submit" class="bg-yellow-500 text-white text-sm px-3 py-1 rounded hover:bg-yellow-600">Sync</button>
+                        </form>
+
+                        <!-- Preview button -->
+                        <form action="/preview-mysql" method="GET">
+                            <input type="hidden" name="db_key" value="{{ db_key }}">
+                            <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700">Preview</button>
+                        </form>
+                        </div>
                     </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-gray-500">No MySQL schema synced yet.</p>
-                {% endif %}
+
+                    <ul class="list-disc pl-5 text-sm text-gray-700">
+                        {% for table, columns in tables.items() %}
+                        <li>
+                            {{ table }} — <span class="text-gray-500">{{ columns | length }} columns</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    </div>
+                {% endfor %}
                 </div>
+
 
             </div>
 
