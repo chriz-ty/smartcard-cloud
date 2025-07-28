@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()  # ✅ Must come before all other imports
 from flask import Flask, redirect, request, jsonify, render_template
 from flask_socketio import SocketIO, emit
 from sqlalchemy import create_engine, text
