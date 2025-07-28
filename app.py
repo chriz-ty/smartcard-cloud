@@ -20,6 +20,7 @@ REGISTERED_CLIENTS = {"smartcardadmin123", "smartcard_client"}
 valid_tokens = {}
 pending_requests = {}
 mysql_schema_store = {}
+synced_postgres = []
 mysql_schema_store.clear()  # Clear old data on every startup
 
 
@@ -118,23 +119,17 @@ def preview_mysql():
 
 @app.route("/receive-postgres", methods=["POST"])
 def receive_postgres():
-    data = request.get_json()
-    print("📥 Received PostgreSQL schema:", data)
+    data = request.json
+    print("📥 Received PostgreSQL Data:", data)
+    synced_postgres.clear()
+    if "databases" in data:
+        for db in data["databases"]:
+            synced_postgres.append(db)
+    return jsonify({"source": "postgresql", "status": "received"})
 
-    # Store or cache it (e.g., in a file or in-memory store)
-    with open("synced_postgres.json", "w") as f:
-        json.dump(data, f)
-
-    return jsonify({"status": "received", "source": "postgresql"}), 200
-
-@app.route('/preview-postgres')
+@app.route("/preview-postgres")
 def preview_postgres():
-    try:
-        with open('synced_postgres.json') as f:
-            data = json.load(f)
-        return render_template('preview_postgres.html', data=data)
-    except Exception as e:
-        return f"Error loading PostgreSQL preview: {e}", 500
+    return render_template("preview_postgres.html", databases=synced_postgres)
 
 @app.route("/disconnect-postgres", methods=["POST"])
 def disconnect_postgres():
