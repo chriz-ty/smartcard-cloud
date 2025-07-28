@@ -159,20 +159,29 @@ def preview_postgres():
     db_name = request.args.get("db")
     table_name = request.args.get("table")
 
-    request_id = f"preview-{uuid.uuid4()}"
-    event = threading.Event()
-    pending_requests[request_id] = {"event": event}
+    # Request schema from local connector
+    schema_request_id = f"schema-{uuid.uuid4()}"
+    schema_event = threading.Event()
+    pending_requests[schema_request_id] = {"event": schema_event}
 
-    socketio.emit("get_column_data", {
-        "request_id": request_id,
-        "table": table_name,
-        "column": "*"  # Handle full row fetch in local client
+    socketio.emit("get_schema", {
+        "request_id": schema_request_id,
+        "table": table_name
     }, namespace="/tunnel")
 
-    event.wait(timeout=5)
-    rows = pending_requests.pop(request_id, {}).get("data", [])
+    schema_event.wait(timeout=5)
+    schema_data = pending_requests.pop(schema_request_id, {}).get("data", [])
 
-    return render_template("preview_postgres.html", db=db_name, table=table_name, data=rows)
+    # Format for template
+    formatted_schema = [{"name": col.get("name", ""), "type": col.get("type", "")} for col in schema_data]
+
+    return render_template("preview_postgres.html", databases=[{
+        "name": db_name,
+        "tables": {
+            table_name: formatted_schema
+        }
+    }])
+
 
 
 @app.route("/disconnect-postgres", methods=["POST"])
