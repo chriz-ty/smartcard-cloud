@@ -53,16 +53,20 @@ def get_databases():
 @app.route("/", methods=["GET"])
 @app.route("/token-page", methods=["GET"])
 def index():
-    databases = get_databases()
-    selected_databases = []
+    if synced_postgres:
+        databases = synced_postgres
+    else:
+        databases = get_databases()
+
     return render_template(
         'cloud_dashboard.html',
         databases=databases,
-        selected_databases=selected_databases,
+        selected_databases=[],
         mysql_data=mysql_schema_store,
         postgres_dbs=synced_postgres,
         token=request.args.get('token')
     )
+
 
 
 def token_page():
@@ -122,17 +126,19 @@ def preview_mysql():
 
 @app.route("/receive-postgres", methods=["POST"])
 def receive_postgres():
-    data = request.get_json()
+    data = request.json
     print("📥 Received PostgreSQL Data:", data)
-    
     synced_postgres.clear()
+
+    # ✅ Restructure raw dict into a list of objects with "name" and "tables"
     for db_name, tables in data.items():
         synced_postgres.append({
             "name": db_name,
-            "tables": tables
+            "tables": list(tables.keys())  # Only extract table names for listing
         })
-    
+
     return jsonify({"source": "postgresql", "status": "received"})
+
 
 
 @app.route("/sync-postgres", methods=["GET"])
