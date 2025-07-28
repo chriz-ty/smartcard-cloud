@@ -128,13 +128,17 @@ def preview_mysql():
 def receive_postgres():
     data = request.json
     print("📥 Received PostgreSQL Data:", data)
+
+    # ✅ Clear existing entries
     synced_postgres.clear()
 
-    # ✅ Restructure raw dict into a list of objects with "name" and "tables"
+    # ✅ Rebuild fresh list from latest sync
     for db_name, tables in data.items():
+        if not tables:
+            continue  # skip if there are no tables
         synced_postgres.append({
             "name": db_name,
-            "tables": list(tables.keys())  # Only extract table names for listing
+            "tables": list(tables.keys())
         })
 
     return jsonify({"source": "postgresql", "status": "received"})
