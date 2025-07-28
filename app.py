@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, redirect, request, jsonify, render_template
 from flask_socketio import SocketIO, emit
 from sqlalchemy import create_engine, text
 import threading
@@ -58,6 +58,7 @@ def index():
         databases=databases,
         selected_databases=selected_databases,
         mysql_data=mysql_schema_store,
+        postgres_dbs=synced_postgres,
         token=request.args.get('token')
     )
 
@@ -122,14 +123,60 @@ def receive_postgres():
     data = request.json
     print("📥 Received PostgreSQL Data:", data)
     synced_postgres.clear()
+
     if "databases" in data:
         for db in data["databases"]:
-            synced_postgres.append(db)
+            if isinstance(db, dict) and "name" in db:
+                synced_postgres.append(db)
+            elif isinstance(db, str):
+                synced_postgres.append({
+                    "name": db,
+                    "tables": []  # or fetch from tunnel if needed
+                })
+    
     return jsonify({"source": "postgresql", "status": "received"})
+
+@app.route("/sync-postgres", methods=["GET"])
+def sync_postgres():
+    request_id = f"postgres-sync-{uuid.uuid4()}"
+    event = threading.Event()
+    pending_requests[request_id] = {"event": event}
+
+    # emit to local client to get all tables (flat list)
+    socketio.emit("get_tables", {"request_id": request_id}, namespace="/tunnel")
+    event.wait(timeout=5)
+
+    tables = pending_requests.pop(request_id, {}).get("data", [])
+    synced_postgres.clear()
+
+    if isinstance(tables, list):
+        synced_postgres.append({
+            "name": "test_postgres_db",  # or dynamic if you can extract from local
+            "tables": tables
+        })
+
+    return redirect("/")
 
 @app.route("/preview-postgres")
 def preview_postgres():
-    return render_template("preview_postgres.html", databases=synced_postgres)
+    db_name = request.args.get("db")
+    table_name = request.args.get("table")
+
+    request_id = f"preview-{uuid.uuid4()}"
+    event = threading.Event()
+    pending_requests[request_id] = {"event": event}
+
+    socketio.emit("get_column_data", {
+        "request_id": request_id,
+        "table": table_name,
+        "column": "*"  # Handle full row fetch in local client
+    }, namespace="/tunnel")
+
+    event.wait(timeout=5)
+    rows = pending_requests.pop(request_id, {}).get("data", [])
+
+    return render_template("preview_postgres.html", db=db_name, table=table_name, data=rows)
+
 
 @app.route("/disconnect-postgres", methods=["POST"])
 def disconnect_postgres():
