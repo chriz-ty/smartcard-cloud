@@ -171,29 +171,39 @@
                     {% endif %}
                 </div>
                 <!-- PostgreSQL Synced Databases -->
-                <div class="bg-white p-4 rounded shadow-md mb-4">
-                <h2 class="text-xl font-bold text-indigo-600 mb-3">Synced PostgreSQL Databases</h2>
+                <div class="bg-white shadow-md rounded p-4 mt-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">🗃️ Synced PostgreSQL Databases</h2>
 
-                {% if postgres_data %}
-                    <h2 class="text-xl font-semibold mt-4">PostgreSQL Databases</h2>
-                    <ul class="list-disc list-inside">
-                        {% for db_name, tables in postgres_data.items() %}
-                        <li>
-                            {{ db_name }}
-                            <a href="/preview-postgres" class="ml-2 text-blue-500 underline">Preview</a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-
-                    <form id="disconnect-postgres-form" method="POST" action="/disconnect-postgres">
+                    <form method="GET" action="/sync-postgres">
                         <button type="submit"
-                        class="mt-2 px-4 py-1 bg-red-600 hover:bg-red-700 text-white rounded">
-                        Disconnect PostgreSQL
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
+                            🔄 Sync PostgreSQL
                         </button>
                     </form>
-                {% endif %}
 
+                    {% if postgres_dbs %}
+                        <ul class="mt-4 space-y-3">
+                            {% for db in postgres_dbs %}
+                                <li class="border rounded px-4 py-2 bg-gray-50 shadow-sm">
+                                    <span class="font-bold text-gray-700">{{ db.name }}</span>
+                                    <ul class="pl-4 text-sm text-gray-600">
+                                        {% for table in db.tables %}
+                                            <li class="flex items-center justify-between mt-1">
+                                                <span>{{ table }}</span>
+                                                <a href="/preview-postgres?db={{ db.name }}&table={{ table }}"
+                                                class="text-blue-600 hover:underline">🔍 Preview</a>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-gray-500 mt-4">No PostgreSQL databases synced yet.</p>
+                    {% endif %}
                 </div>
+
+
 
 
 
