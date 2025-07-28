@@ -9,29 +9,20 @@ import requests
 import json
 import urllib.parse
 
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 socketio = SocketIO(app, cors_allowed_origins="*")
-
 
 # In-memory stores
 REGISTERED_CLIENTS = {"smartcardadmin123", "smartcard_client"}
 valid_tokens = {}
 pending_requests = {}
 mysql_schema_store = {}
-mysql_schema_store.clear()  # Clear old data on every startup
-
-
+mysql_schema_store.clear()
 
 # ---------------- UI Routes ----------------
 
-# Mock function to get databases and tables from IBM DB2
-# In a real application, this would connect to your IBM DB2 instance
-# and fetch the actual databases and tables
 def get_databases():
-    # This is a mock implementation
-    # Replace this with actual database connection and query logic
     return [
         {
             "name": "SALESDB",
@@ -52,17 +43,21 @@ def get_databases():
 def index():
     databases = get_databases()
     selected_databases = []
+
+    try:
+        with open("synced_postgres.json") as f:
+            postgres_data = json.load(f)
+    except FileNotFoundError:
+        postgres_data = {}
+
     return render_template(
         'cloud_dashboard.html',
         databases=databases,
         selected_databases=selected_databases,
         mysql_data=mysql_schema_store,
+        postgres_data=postgres_data,
         token=request.args.get('token')
     )
-
-
-def token_page():
-    return render_template("token.html")
 
 @app.route("/generate-token", methods=["GET", "POST"])
 def generate_token():
@@ -89,23 +84,22 @@ def generate_token():
     except Exception as e:
         print(f"[⚠️ Error sending to local] {e}")
 
-    # AJAX request: return JSON
-    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({
-            "status": "success",
-            "message": "Token generated and sent to client.",
-            "token": token,
-            "client_id": client_id
-        }), 200
-    # Normal POST: render dashboard with token
     databases = get_databases()
     selected_databases = []
+
+    try:
+        with open("synced_postgres.json") as f:
+            postgres_data = json.load(f)
+    except FileNotFoundError:
+        postgres_data = {}
+
     return render_template('cloud_dashboard.html', 
                          databases=databases,
                          selected_databases=selected_databases,
+                         mysql_data=mysql_schema_store,
+                         postgres_data=postgres_data,
                          token=token,
-                         client_id=client_id,
-                         mysql_schema_store=mysql_schema_store)
+                         client_id=client_id)
 
 @app.route("/preview-mysql", methods=["GET"])
 def preview_mysql():
@@ -113,8 +107,27 @@ def preview_mysql():
     if db_key not in mysql_schema_store:
         return "Invalid database selected", 404
 
-    db_data = mysql_schema_store[db_key]  # this is a dict of tables → list of column dicts
+    db_data = mysql_schema_store[db_key]
     return render_template("preview_mysql.html", db_key=db_key, db_data=db_data)
+
+@app.route("/receive-postgres", methods=["POST"])
+def receive_postgres():
+    data = request.get_json()
+    print("📥 Received PostgreSQL schema:", data)
+
+    with open("synced_postgres.json", "w") as f:
+        json.dump(data, f)
+
+    return jsonify({"status": "received", "source": "postgresql"}), 200
+
+@app.route('/preview-postgres')
+def preview_postgres():
+    try:
+        with open('synced_postgres.json') as f:
+            data = json.load(f)
+        return render_template('preview_postgres.html', data=data)
+    except Exception as e:
+        return f"Error loading PostgreSQL preview: {e}", 500
 
 # ---------------- Token Verification API ----------------
 
@@ -146,6 +159,15 @@ def get_token():
     valid_tokens[token] = client_id
     print(f"[✅ Cloud] Token generated for {client_id}: {token}")
     return jsonify({"token": token})
+
+@app.route("/disconnect-postgres", methods=["POST"])
+def disconnect_postgres():
+    try:
+        if os.path.exists("synced_postgres.json"):
+            os.remove("synced_postgres.json")
+        return jsonify({"status": "disconnected"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 # ---------------- Cloud Tunnel APIs ----------------
@@ -191,7 +213,6 @@ def receive_tally():
 
     return jsonify({"message": "Tally data received"}), 200
 
-
 @app.route("/tally-preview")
 def tally_preview():
     try:
@@ -215,7 +236,6 @@ def receive_mysql():
 def disconnect_mysql():
     mysql_schema_store.clear()
     return jsonify({"status": "disconnected"}), 200
-
 
 # ---------------- WebSocket Event Handlers ----------------
 
