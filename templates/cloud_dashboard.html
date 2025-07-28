@@ -170,6 +170,30 @@
                         </div>
                     {% endif %}
                 </div>
+                <!-- PostgreSQL Synced Databases -->
+                <div class="bg-white p-4 rounded shadow-md mb-4">
+                <h2 class="text-xl font-bold text-indigo-600 mb-3">Synced PostgreSQL Databases</h2>
+
+                {% if postgres_data %}
+                    <h2 class="text-xl font-semibold mt-4">PostgreSQL Databases</h2>
+                    <ul class="list-disc list-inside">
+                        {% for db_name, tables in postgres_data.items() %}
+                        <li>
+                            {{ db_name }}
+                            <a href="/preview-postgres" class="ml-2 text-blue-500 underline">Preview</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+
+                    <form id="disconnect-postgres-form" method="POST" action="/disconnect-postgres">
+                        <button type="submit"
+                        class="mt-2 px-4 py-1 bg-red-600 hover:bg-red-700 text-white rounded">
+                        Disconnect PostgreSQL
+                        </button>
+                    </form>
+                {% endif %}
+
+                </div>
 
 
 
