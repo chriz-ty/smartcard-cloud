@@ -120,21 +120,18 @@ def preview_mysql():
 
 @app.route("/receive-postgres", methods=["POST"])
 def receive_postgres():
-    data = request.json
+    data = request.get_json()
     print("📥 Received PostgreSQL Data:", data)
+    
     synced_postgres.clear()
-
-    if "databases" in data:
-        for db in data["databases"]:
-            if isinstance(db, dict) and "name" in db:
-                synced_postgres.append(db)
-            elif isinstance(db, str):
-                synced_postgres.append({
-                    "name": db,
-                    "tables": []  # or fetch from tunnel if needed
-                })
+    for db_name, tables in data.items():
+        synced_postgres.append({
+            "name": db_name,
+            "tables": tables
+        })
     
     return jsonify({"source": "postgresql", "status": "received"})
+
 
 @app.route("/sync-postgres", methods=["GET"])
 def sync_postgres():
