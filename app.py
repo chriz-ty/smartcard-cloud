@@ -22,8 +22,8 @@ REGISTERED_CLIENTS = {"smartcardadmin123", "smartcard_client"}
 valid_tokens = {}
 pending_requests = {}
 mysql_schema_store = {}
-synced_postgres = {} # Changed from list to dictionary
-mysql_schema_store.clear() # Clear old data on every startup
+synced_postgres = []  # { db_name: [table1, table2] }
+mysql_schema_store.clear()  # Clear old data on every startup
 
 
 
@@ -54,12 +54,7 @@ def get_databases():
 @app.route("/token-page", methods=["GET"])
 def index():
     if synced_postgres:
-        databases = []
-        for db_name, tables_dict in synced_postgres.items():
-            databases.append({
-                "name": db_name,
-                "tables": list(tables_dict.keys())
-            })
+        databases = synced_postgres
     else:
         databases = get_databases()
 
@@ -135,12 +130,16 @@ def receive_postgres():
     data = request.get_json()
     print("📥 Received PostgreSQL sync data:", data)
 
-    # Clear existing entries for this database, or simply overwrite if the db_name is already a key
+    synced_postgres.clear()  # Clear existing entries
+
     for db_schema, tables in data.items():
-        db_name = db_schema.split(":")[0] # e.g., "my_postgres_db"
-        
-        # Ensure we store the full schema, not just table names for preview-postgres
-        synced_postgres[db_name] = tables # Overwrite existing data for this database
+        db_name = db_schema.split(":")[0]
+        table_names = list(tables.keys())
+
+        synced_postgres.append({
+            "name": db_name,
+            "tables": table_names
+        })
 
     return jsonify({"status": "received", "source": "postgresql"}), 200
 
@@ -151,15 +150,18 @@ def sync_postgres():
     event = threading.Event()
     pending_requests[request_id] = {"event": event}
 
-    socketio.emit("get_tables", {"request_id": request_id, "db_type": "postgres"}, namespace="/tunnel") # Added db_type
+    socketio.emit("get_tables", {"request_id": request_id}, namespace="/tunnel")
     event.wait(timeout=5)
 
-    tables_data = pending_requests.pop(request_id, {}).get("data", {}) # Expecting a dict: {db_name: {table_name: schema}}
-    print("🔄 Syncing PostgreSQL tables:", tables_data)
+    tables = pending_requests.pop(request_id, {}).get("data", [])
+    print("🔄 Syncing PostgreSQL tables:", tables)
 
-    if isinstance(tables_data, dict):
-        for db_name, tables_info in tables_data.items():
-            synced_postgres[db_name] = tables_info # Store the full schema data
+    if isinstance(tables, list):
+        synced_postgres.clear()
+        synced_postgres.append({
+            "name": "postgresql",  # Placeholder, can't extract db name from flat list
+            "tables": tables
+        })
 
     return redirect("/")
 
@@ -169,11 +171,17 @@ def preview_postgres():
     db_name = request.args.get("db")
     table_name = request.args.get("table")
 
-    if db_name not in synced_postgres or table_name not in synced_postgres[db_name]:
-        return "Invalid database or table selected", 404
-    
-    # Retrieve the schema directly from the synced_postgres store
-    schema_data = synced_postgres[db_name][table_name]
+    schema_request_id = f"schema-{uuid.uuid4()}"
+    schema_event = threading.Event()
+    pending_requests[schema_request_id] = {"event": schema_event}
+
+    socketio.emit("get_schema", {
+        "request_id": schema_request_id,
+        "table": table_name
+    }, namespace="/tunnel")
+
+    schema_event.wait(timeout=5)
+    schema_data = pending_requests.pop(schema_request_id, {}).get("data", [])
 
     formatted_schema = [{"name": col.get("name", ""), "type": col.get("type", "")} for col in schema_data]
 
