@@ -2,50 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PostgreSQL Preview</title>
+  <title>PostgreSQL Database Preview</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800">
-  <div class="max-w-6xl mx-auto p-6">
+  <div class="max-w-4xl mx-auto p-6">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-purple-800">📊 PostgreSQL Database Preview</h1>
+      <h1 class="text-2xl font-bold text-purple-800">🗃️ PostgreSQL Database Preview</h1>
       <a href="/" class="text-blue-600 hover:underline">← Back to Dashboard</a>
     </div>
 
-    {% if databases %}
-      {% for db in databases %}
-        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
-          <h2 class="text-xl font-semibold text-purple-700 mb-2">🗃️ {{ db.name }}</h2>
-          {% for table_name, columns in db.tables.items() %}
-            <div class="mt-4">
-              <h3 class="text-lg font-medium text-blue-700 mb-1">📁 Table: {{ table_name }}</h3>
-              <div class="overflow-x-auto bg-gray-50 border border-gray-300 rounded-md">
-                <table class="min-w-full table-auto text-sm">
-                  <thead class="bg-gray-200 text-gray-700">
-                    <tr>
-                      <th class="px-4 py-2 text-left">Column Name</th>
-                      <th class="px-4 py-2 text-left">Data Type</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for column in columns %}
-                      <tr class="border-t">
-                        <td class="px-4 py-2">{{ column.name }}</td>
-                        <td class="px-4 py-2">{{ column.type }}</td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          {% endfor %}
+    <div class="bg-white shadow-md rounded-lg p-6">
+      <h2 class="text-xl font-semibold text-purple-700 mb-2">🔹 {{ dbname }}</h2>
+      <h3 class="text-lg font-medium text-blue-700 mb-4">📁 Table: {{ table }}</h3>
+
+      {% if table_info %}
+        <div class="overflow-x-auto bg-gray-50 border border-gray-300 rounded-md">
+          <table class="min-w-full table-auto text-sm">
+            <thead class="bg-gray-200 text-gray-700">
+              <tr>
+                <th class="px-4 py-2 text-left">Column Name</th>
+                <th class="px-4 py-2 text-left">Data Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for col in table_info %}
+              <tr class="border-t">
+                <td class="px-4 py-2">{{ col.name }}</td>
+                <td class="px-4 py-2">{{ col.type }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-      {% endfor %}
-    {% else %}
-      <div class="bg-yellow-100 text-yellow-800 px-4 py-3 rounded shadow">
-        ⚠️ No PostgreSQL databases have been synced yet.
-      </div>
-    {% endif %}
+      {% else %}
+        <p class="text-gray-600">No schema info available for this table.</p>
+      {% endif %}
+    </div>
   </div>
 </body>
 </html>
