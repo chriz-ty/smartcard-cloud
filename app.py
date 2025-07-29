@@ -22,7 +22,7 @@ REGISTERED_CLIENTS = {"smartcardadmin123", "smartcard_client"}
 valid_tokens = {}
 pending_requests = {}
 mysql_schema_store = {}
-synced_postgres = []
+synced_postgres = []  # { db_name: [table1, table2] }
 mysql_schema_store.clear()  # Clear old data on every startup
 
 
@@ -124,25 +124,24 @@ def preview_mysql():
     db_data = mysql_schema_store[db_key]  # this is a dict of tables → list of column dicts
     return render_template("preview_mysql.html", db_key=db_key, db_data=db_data)
 
-@app.route("/receive-postgres", methods=["POST"])
+
+@app.route('/receive-postgres', methods=['POST'])
 def receive_postgres():
-    data = request.json
-    print("📥 Received PostgreSQL Data:", data)
+    data = request.get_json()
+    print("📥 Received PostgreSQL sync data:", data)
 
-    # ✅ Clear existing entries
-    synced_postgres.clear()
+    synced_postgres.clear()  # Clear existing entries
 
-    # ✅ Rebuild fresh list from latest sync
-    for db_name, tables in data.items():
-        if not tables:
-            continue  # skip if there are no tables
+    for db_schema, tables in data.items():
+        db_name = db_schema.split(":")[0]
+        table_names = list(tables.keys())
+
         synced_postgres.append({
             "name": db_name,
-            "tables": list(tables.keys())
+            "tables": table_names
         })
 
-    return jsonify({"source": "postgresql", "status": "received"})
-
+    return jsonify({"status": "received", "source": "postgresql"}), 200
 
 
 @app.route("/sync-postgres", methods=["GET"])
@@ -151,27 +150,27 @@ def sync_postgres():
     event = threading.Event()
     pending_requests[request_id] = {"event": event}
 
-    # emit to local client to get all tables (flat list)
     socketio.emit("get_tables", {"request_id": request_id}, namespace="/tunnel")
     event.wait(timeout=5)
 
     tables = pending_requests.pop(request_id, {}).get("data", [])
-    synced_postgres.clear()
+    print("🔄 Syncing PostgreSQL tables:", tables)
 
     if isinstance(tables, list):
+        synced_postgres.clear()
         synced_postgres.append({
-            "name": "test_postgres_db",  # or dynamic if you can extract from local
+            "name": "postgresql",  # Placeholder, can't extract db name from flat list
             "tables": tables
         })
 
     return redirect("/")
+
 
 @app.route("/preview-postgres")
 def preview_postgres():
     db_name = request.args.get("db")
     table_name = request.args.get("table")
 
-    # Request schema from local connector
     schema_request_id = f"schema-{uuid.uuid4()}"
     schema_event = threading.Event()
     pending_requests[schema_request_id] = {"event": schema_event}
@@ -184,7 +183,6 @@ def preview_postgres():
     schema_event.wait(timeout=5)
     schema_data = pending_requests.pop(schema_request_id, {}).get("data", [])
 
-    # Format for template
     formatted_schema = [{"name": col.get("name", ""), "type": col.get("type", "")} for col in schema_data]
 
     return render_template("preview_postgres.html", databases=[{
@@ -195,12 +193,11 @@ def preview_postgres():
     }])
 
 
-
 @app.route("/disconnect-postgres", methods=["POST"])
 def disconnect_postgres():
     try:
-        if os.path.exists("synced_postgres.json"):
-            os.remove("synced_postgres.json")
+        synced_postgres.clear()
+        print("🗑️ Disconnected all synced PostgreSQL databases.")
         return jsonify({"status": "disconnected"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
