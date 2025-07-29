@@ -150,7 +150,7 @@ def sync_postgres():
     event = threading.Event()
     pending_requests[request_id] = {"event": event}
 
-    socketio.emit("get_tables", {"request_id": request_id}, namespace="/tunnel")
+    socketio.emit("get_postgres_tables", {"request_id": request_id}, namespace="/tunnel")
     event.wait(timeout=5)
 
     tables = pending_requests.pop(request_id, {}).get("data", [])
@@ -306,6 +306,15 @@ def disconnect_mysql():
 
 
 # ---------------- WebSocket Event Handlers ----------------
+
+@socketio.on("db2_tables_response", namespace="/tunnel")
+@socketio.on("postgres_tables_response", namespace="/tunnel")
+def handle_tables_response(data):
+    request_id = data.get("request_id")
+    tables = data.get("tables", [])
+    pending_requests[request_id]["data"] = tables
+    pending_requests[request_id]["event"].set()
+
 
 @socketio.on("connect", namespace="/tunnel")
 def handle_connect():
